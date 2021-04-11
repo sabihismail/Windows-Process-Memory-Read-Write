@@ -10,13 +10,13 @@ PEProcess::PEProcess(DWORD processID)
     GetHModules();
 }
 
-PEProcess PEProcess::WaitForProcessAvailability(wchar_t* processName)
+PEProcess PEProcess::WaitForProcessAvailability(wchar_t* processName, int* toCheck)
 {
     ProcessType processType = IdentifyProcess();
 
     DWORD processID = NULL;
 
-    while (processID == NULL)
+    while (processID == NULL && *toCheck)
     {
         if (processType == ProcessType::PROCESS_32)
         {
@@ -29,7 +29,19 @@ PEProcess PEProcess::WaitForProcessAvailability(wchar_t* processName)
         }
     }
 
+    if (!*toCheck)
+    {
+        throw std::exception("Quitting...");
+    }
+
     return PEProcess(processID);
+}
+
+int PEProcess::StillAlive()
+{
+    DWORD ret = WaitForSingleObject(processHandle, 0);
+
+    return ret == WAIT_TIMEOUT;
 }
 
 void PEProcess::SetModule(wchar_t* moduleName)
@@ -78,9 +90,55 @@ LPVOID PEProcess::CheckAddress(uintptr_t offset)
     return (LPVOID)address;
 }
 
-std::string PEProcess::ReadMemoryString(uintptr_t offset, int amount)
+std::string PEProcess::ReadMemoryStringFromAddress(uintptr_t offset, int amount, int directAddress, EndianType endianFlip)
+{
+    LPVOID address = ReadMemoryAddress(offset, endianFlip);
+    uintptr_t addressConv = (uintptr_t)address;
+    std::string str = ReadMemoryString(addressConv, amount, directAddress);
+
+    return str;
+}
+
+LPVOID PEProcess::ReadMemoryAddress(uintptr_t offset, EndianType endianFlip)
 {
     LPVOID address = CheckAddress(offset);
+
+    if (processType == ProcessType::PROCESS_32)
+    {
+        LPVOID buffer{};
+        bool result = ReadProcessMemory(processHandle, address, &buffer, sizeof(buffer), NULL);
+
+        if (endianFlip == EndianType::LITTLE_ENDIAN || endianType == EndianType::LITTLE_ENDIAN)
+        {
+            unsigned long val = (unsigned long)buffer;
+
+            val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF);
+            val = (val << 16) | (val >> 16);
+
+            buffer = (LPVOID)val;
+        }
+
+        return buffer;
+    }
+    else if (processType == ProcessType::PROCESS_64)
+    {
+        
+    }
+
+    throw new std::exception("Invalid architecture type.");
+}
+
+std::string PEProcess::ReadMemoryString(uintptr_t offset, int amount, int directAddress)
+{
+    LPVOID address;
+    if (!directAddress) 
+    {
+        address = CheckAddress(offset);
+    } 
+    else 
+    {
+        address = (LPVOID)offset;
+    }
 
     int totalRead = 0;
     std::string str;
@@ -94,7 +152,17 @@ std::string PEProcess::ReadMemoryString(uintptr_t offset, int amount)
 
         if (result)
         {
-            str += buffer;
+            for (auto c : buffer)
+            {
+                if (c == '\0')
+                {
+                    return str;
+                }
+
+                str += c;
+            }
+
+            address = (LPVOID)((unsigned long)address + read);
         }
         else
         {

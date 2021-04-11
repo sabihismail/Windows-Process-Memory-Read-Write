@@ -26,19 +26,30 @@ enum class ProcessType
 	PROCESS_64
 };
 
+enum class EndianType
+{
+	LITTLE_ENDIAN,
+	BIG_ENDIAN
+};
+
 class PEProcess
 {
 public:
 	PEProcess(DWORD processID);
-	static PEProcess WaitForProcessAvailability(wchar_t* processName);
+	static PEProcess WaitForProcessAvailability(wchar_t* processName, int* toCheck);
+	int StillAlive();
 	void SetModule(wchar_t* moduleName);
-	std::string ReadMemoryString(uintptr_t offset, int amount = 32);
+	void SetEndianness(EndianType endian);
+	std::string ReadMemoryStringFromAddress(uintptr_t offset, int amount = 32, int directAddress = 0, EndianType endianFlip = EndianType::BIG_ENDIAN);
+	LPVOID ReadMemoryAddress(uintptr_t offset, EndianType endian = EndianType::BIG_ENDIAN);
+	std::string ReadMemoryString(uintptr_t offset, int amount = 32, int directAddress = 0);
 
 private:
 	wchar_t* processName;
 	DWORD processID;
 	HANDLE processHandle;
 	ProcessType processType;
+	EndianType endianType = EndianType::BIG_ENDIAN;
 	std::map<std::wstring, HModuleExt32> hModules32;
 
 	std::wstring* currentModuleName;
