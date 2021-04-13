@@ -61,6 +61,11 @@ void PEProcess::SetModule(wchar_t* moduleName)
     }
 }
 
+void PEProcess::SetEndianness(EndianType endian)
+{
+    endianType = endian;
+}
+
 void PEProcess::CheckModule(std::string section)
 {
     if (currentHModule == nullptr || currentModuleName == nullptr || currentModuleName->empty())
@@ -74,8 +79,13 @@ void PEProcess::CheckModule(std::string section)
     }
 }
 
-LPVOID PEProcess::CheckAddress(uintptr_t offset)
+LPVOID PEProcess::CheckAddress(uintptr_t offset, int directAddress)
 {
+    if (directAddress)
+    {
+        return (LPVOID)offset;
+    }
+
     uintptr_t moduleBaseAddress = (uintptr_t)currentHModule->hModule.modBaseAddr;
     uintptr_t address = moduleBaseAddress + offset;
 
@@ -90,25 +100,52 @@ LPVOID PEProcess::CheckAddress(uintptr_t offset)
     return (LPVOID)address;
 }
 
-std::string PEProcess::ReadMemoryStringFromAddress(uintptr_t offset, int amount, int directAddress, EndianType endianFlip)
+LPVOID PEProcess::ReadMemoryAddressChain(uintptr_t firstAddress, int* offsets, uint16_t offsetCount, EndianType endianFlip)
 {
-    LPVOID address = ReadMemoryAddress(offset, endianFlip);
+    uintptr_t currentAddress = firstAddress;
+    for (uint16_t i = 0; i <= offsetCount / 4; i++)
+    {
+        LPVOID address = ReadMemoryAddress(currentAddress, currentAddress == firstAddress ? 0 : 1, endianFlip);
+        currentAddress = (uintptr_t)address;
+
+        if (i != offsetCount / 4)
+        {
+            currentAddress += *offsets++;
+        }
+    }
+
+    return (LPVOID)currentAddress;
+}
+
+int PEProcess::ReadMemoryStruct(LPVOID address, void* obj, SIZE_T size)
+{
+    return ReadProcessMemory(processHandle, address, obj, size, NULL);
+}
+
+std::string PEProcess::ReadMemoryStringFromAddress(uintptr_t offset, int amount, int directAddress, EndianType endianness)
+{
+    LPVOID address = ReadMemoryAddress(offset, 0, endianness);
     uintptr_t addressConv = (uintptr_t)address;
     std::string str = ReadMemoryString(addressConv, amount, directAddress);
 
     return str;
 }
 
-LPVOID PEProcess::ReadMemoryAddress(uintptr_t offset, EndianType endianFlip)
+LPVOID PEProcess::ReadMemoryAddress(LPVOID address, EndianType endianness)
 {
-    LPVOID address = CheckAddress(offset);
+    return ReadMemoryAddress((uintptr_t)address, 1, endianness);
+}
+
+LPVOID PEProcess::ReadMemoryAddress(uintptr_t offset, int directAddress, EndianType endianness)
+{
+    LPVOID address = CheckAddress(offset, directAddress);
 
     if (processType == ProcessType::PROCESS_32)
     {
         LPVOID buffer{};
         bool result = ReadProcessMemory(processHandle, address, &buffer, sizeof(buffer), NULL);
 
-        if (endianFlip == EndianType::LITTLE_ENDIAN || endianType == EndianType::LITTLE_ENDIAN)
+        if (endianness == EndianType::BIG_ENDIAN || endianType == EndianType::BIG_ENDIAN)
         {
             unsigned long val = (unsigned long)buffer;
 
@@ -128,17 +165,14 @@ LPVOID PEProcess::ReadMemoryAddress(uintptr_t offset, EndianType endianFlip)
     throw new std::exception("Invalid architecture type.");
 }
 
-std::string PEProcess::ReadMemoryString(uintptr_t offset, int amount, int directAddress)
+std::string PEProcess::ReadMemoryString(LPVOID address, int length)
 {
-    LPVOID address;
-    if (!directAddress) 
-    {
-        address = CheckAddress(offset);
-    } 
-    else 
-    {
-        address = (LPVOID)offset;
-    }
+    return ReadMemoryString((uintptr_t)address, length, 1);
+}
+
+std::string PEProcess::ReadMemoryString(uintptr_t offset, int length, int directAddress)
+{
+    LPVOID address = CheckAddress(offset, directAddress);
 
     int totalRead = 0;
     std::string str;
@@ -168,7 +202,7 @@ std::string PEProcess::ReadMemoryString(uintptr_t offset, int amount, int direct
         {
             throw new std::exception("Error reading memory.");
         }
-    } while (totalRead < amount);
+    } while (totalRead < length);
 
     return str;
 }

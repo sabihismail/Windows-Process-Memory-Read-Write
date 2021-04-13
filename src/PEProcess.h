@@ -40,16 +40,20 @@ public:
 	int StillAlive();
 	void SetModule(wchar_t* moduleName);
 	void SetEndianness(EndianType endian);
-	std::string ReadMemoryStringFromAddress(uintptr_t offset, int amount = 32, int directAddress = 0, EndianType endianFlip = EndianType::BIG_ENDIAN);
-	LPVOID ReadMemoryAddress(uintptr_t offset, EndianType endian = EndianType::BIG_ENDIAN);
-	std::string ReadMemoryString(uintptr_t offset, int amount = 32, int directAddress = 0);
+	LPVOID ReadMemoryAddressChain(uintptr_t firstAddress, int* offsets, uint16_t offsetCount, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
+	std::string ReadMemoryStringFromAddress(uintptr_t offset, int amount = 32, int directAddress = 0, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
+	LPVOID ReadMemoryAddress(LPVOID address, EndianType endian = EndianType::LITTLE_ENDIAN);
+	LPVOID ReadMemoryAddress(uintptr_t offset, int directAddress = 0, EndianType endian = EndianType::LITTLE_ENDIAN);
+	std::string ReadMemoryString(LPVOID address, int length = 32);
+	std::string ReadMemoryString(uintptr_t offset, int length = 32, int directAddress = 0);
+	int ReadMemoryStruct(LPVOID address, void* obj, SIZE_T size);
 
 private:
 	wchar_t* processName;
 	DWORD processID;
 	HANDLE processHandle;
 	ProcessType processType;
-	EndianType endianType = EndianType::BIG_ENDIAN;
+	EndianType endianType = EndianType::LITTLE_ENDIAN;
 	std::map<std::wstring, HModuleExt32> hModules32;
 
 	std::wstring* currentModuleName;
@@ -58,7 +62,7 @@ private:
 	static ProcessType IdentifyProcess();
 	static DWORD GetProcess32(wchar_t* processName);
 	void CheckModule(std::string section);
-	LPVOID CheckAddress(uintptr_t offset);
+	LPVOID CheckAddress(uintptr_t address, int directAddress);
 	void GetHModules();
 	void GetHModules32();
 	void ProcessHModule32(MODULEENTRY32W hModule);
