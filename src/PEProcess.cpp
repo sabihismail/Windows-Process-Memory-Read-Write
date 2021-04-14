@@ -117,9 +117,12 @@ LPVOID PEProcess::ReadMemoryAddressChain(uintptr_t firstAddress, int* offsets, u
     return (LPVOID)currentAddress;
 }
 
-int PEProcess::ReadMemoryStruct(LPVOID address, void* obj, SIZE_T size)
+int PEProcess::ReadMemoryStruct(LPVOID address, void* obj, SIZE_T size, int offset)
 {
-    return ReadProcessMemory(processHandle, address, obj, size, NULL);
+    uintptr_t ptr = (uintptr_t)address + offset;
+    LPCVOID addr = (LPCVOID)ptr;
+
+    return ReadProcessMemory(processHandle, addr, obj, size, NULL);
 }
 
 std::string PEProcess::ReadMemoryStringFromAddress(uintptr_t offset, int amount, int directAddress, EndianType endianness)
@@ -165,9 +168,11 @@ LPVOID PEProcess::ReadMemoryAddress(uintptr_t offset, int directAddress, EndianT
     throw new std::exception("Invalid architecture type.");
 }
 
-std::string PEProcess::ReadMemoryString(LPVOID address, int length)
+std::string PEProcess::ReadMemoryString(LPVOID address, int length, int offset)
 {
-    return ReadMemoryString((uintptr_t)address, length, 1);
+    int addr = (uintptr_t)address + offset;
+
+    return ReadMemoryString(addr, length, 1);
 }
 
 std::string PEProcess::ReadMemoryString(uintptr_t offset, int length, int directAddress)

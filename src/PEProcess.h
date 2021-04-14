@@ -44,9 +44,9 @@ public:
 	std::string ReadMemoryStringFromAddress(uintptr_t offset, int amount = 32, int directAddress = 0, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
 	LPVOID ReadMemoryAddress(LPVOID address, EndianType endian = EndianType::LITTLE_ENDIAN);
 	LPVOID ReadMemoryAddress(uintptr_t offset, int directAddress = 0, EndianType endian = EndianType::LITTLE_ENDIAN);
-	std::string ReadMemoryString(LPVOID address, int length = 32);
+	std::string ReadMemoryString(LPVOID address, int length = 32, int offset = 0);
 	std::string ReadMemoryString(uintptr_t offset, int length = 32, int directAddress = 0);
-	int ReadMemoryStruct(LPVOID address, void* obj, SIZE_T size);
+	int ReadMemoryStruct(LPVOID address, void* obj, SIZE_T size, int offset = 0);
 
 private:
 	wchar_t* processName;
