@@ -41,12 +41,14 @@ public:
 	void SetModule(wchar_t* moduleName);
 	void SetEndianness(EndianType endian);
 	LPVOID ReadMemoryAddressChain(uintptr_t firstAddress, int* offsets, uint16_t offsetCount, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
-	std::string ReadMemoryStringFromAddress(uintptr_t offset, int amount = 32, int directAddress = 0, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
+	std::string ReadMemoryStringFromAddress(uintptr_t offset, int length = 32, int directAddress = 0, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
 	LPVOID ReadMemoryAddress(LPVOID address, EndianType endian = EndianType::LITTLE_ENDIAN);
 	LPVOID ReadMemoryAddress(uintptr_t offset, int directAddress = 0, EndianType endian = EndianType::LITTLE_ENDIAN);
 	std::string ReadMemoryString(LPVOID address, int length = 32, int offset = 0);
 	std::string ReadMemoryString(uintptr_t offset, int length = 32, int directAddress = 0);
 	int ReadMemoryStruct(LPVOID address, void* obj, SIZE_T size, int offset = 0);
+	template<class T>
+	T ReadMemoryStruct(LPVOID address, int offset = 0);
 
 private:
 	wchar_t* processName;
@@ -67,3 +69,21 @@ private:
 	void GetHModules32();
 	void ProcessHModule32(MODULEENTRY32W hModule);
 };
+
+template<class T>
+T PEProcess::ReadMemoryStruct(LPVOID address, int offset)
+{
+	T obj{};
+
+	uintptr_t ptr = (uintptr_t)address + offset;
+	LPCVOID addr = (LPCVOID)ptr;
+
+	int result = ReadProcessMemory(processHandle, addr, &obj, sizeof(T), NULL);
+
+	if (!result)
+	{
+		return nullptr;
+	}
+
+	return obj;
+}

@@ -125,11 +125,11 @@ int PEProcess::ReadMemoryStruct(LPVOID address, void* obj, SIZE_T size, int offs
     return ReadProcessMemory(processHandle, addr, obj, size, NULL);
 }
 
-std::string PEProcess::ReadMemoryStringFromAddress(uintptr_t offset, int amount, int directAddress, EndianType endianness)
+std::string PEProcess::ReadMemoryStringFromAddress(uintptr_t offset, int length, int directAddress, EndianType endianness)
 {
     LPVOID address = ReadMemoryAddress(offset, 0, endianness);
     uintptr_t addressConv = (uintptr_t)address;
-    std::string str = ReadMemoryString(addressConv, amount, directAddress);
+    std::string str = ReadMemoryString(addressConv, length, directAddress);
 
     return str;
 }
@@ -170,7 +170,12 @@ LPVOID PEProcess::ReadMemoryAddress(uintptr_t offset, int directAddress, EndianT
 
 std::string PEProcess::ReadMemoryString(LPVOID address, int length, int offset)
 {
-    int addr = (uintptr_t)address + offset;
+    if (address == 0)
+    {
+        return "";
+    }
+
+    uintptr_t addr = (uintptr_t)address + offset;
 
     return ReadMemoryString(addr, length, 1);
 }
