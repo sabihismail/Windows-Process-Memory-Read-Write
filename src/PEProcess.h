@@ -41,14 +41,14 @@ public:
 	void SetModule(wchar_t* moduleName);
 	void SetEndianness(EndianType endian);
 	LPVOID ReadMemoryAddressChain(uintptr_t firstAddress, int* offsets, uint16_t offsetCount, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
-	std::string ReadMemoryStringFromAddress(uintptr_t offset, int length = 32, int directAddress = 0, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
+	std::string ReadMemoryStringFromAddress(uintptr_t offset, int length = 32, int* result = nullptr, bool directAddress = false, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
 	LPVOID ReadMemoryAddress(LPVOID address, EndianType endian = EndianType::LITTLE_ENDIAN);
-	LPVOID ReadMemoryAddress(uintptr_t offset, int directAddress = 0, EndianType endian = EndianType::LITTLE_ENDIAN);
-	std::string ReadMemoryString(LPVOID address, int length = 32, int offset = 0);
-	std::string ReadMemoryString(uintptr_t offset, int length = 32, int directAddress = 0);
+	LPVOID ReadMemoryAddress(uintptr_t offset, bool directAddress = false, EndianType endian = EndianType::LITTLE_ENDIAN);
+	std::string ReadMemoryString(LPVOID address, int length = 32, int* result = nullptr, int offset = 0);
+	std::string ReadMemoryString(uintptr_t offset, int length = 32, int* result = nullptr, bool directAddress = false);
 	int ReadMemoryStruct(LPVOID address, void* obj, SIZE_T size, int offset = 0);
 	template<class T>
-	T ReadMemoryStruct(LPVOID address, int offset = 0);
+	T ReadMemoryStruct(LPVOID address, int offset = 0, int* success = nullptr);
 
 private:
 	wchar_t* processName;
@@ -64,14 +64,14 @@ private:
 	static ProcessType IdentifyProcess();
 	static DWORD GetProcess32(wchar_t* processName);
 	void CheckModule(std::string section);
-	LPVOID CheckAddress(uintptr_t address, int directAddress);
+	LPVOID CheckAddress(uintptr_t address, bool directAddress);
 	void GetHModules();
 	void GetHModules32();
 	void ProcessHModule32(MODULEENTRY32W hModule);
 };
 
 template<class T>
-T PEProcess::ReadMemoryStruct(LPVOID address, int offset)
+T PEProcess::ReadMemoryStruct(LPVOID address, int offset, int* success)
 {
 	T obj{};
 
@@ -80,9 +80,9 @@ T PEProcess::ReadMemoryStruct(LPVOID address, int offset)
 
 	int result = ReadProcessMemory(processHandle, addr, &obj, sizeof(T), NULL);
 
-	if (!result)
+	if (success)
 	{
-		return nullptr;
+		*success = result;
 	}
 
 	return obj;

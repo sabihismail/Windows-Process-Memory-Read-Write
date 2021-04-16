@@ -79,7 +79,7 @@ void PEProcess::CheckModule(std::string section)
     }
 }
 
-LPVOID PEProcess::CheckAddress(uintptr_t offset, int directAddress)
+LPVOID PEProcess::CheckAddress(uintptr_t offset, bool directAddress)
 {
     if (directAddress)
     {
@@ -125,11 +125,11 @@ int PEProcess::ReadMemoryStruct(LPVOID address, void* obj, SIZE_T size, int offs
     return ReadProcessMemory(processHandle, addr, obj, size, NULL);
 }
 
-std::string PEProcess::ReadMemoryStringFromAddress(uintptr_t offset, int length, int directAddress, EndianType endianness)
+std::string PEProcess::ReadMemoryStringFromAddress(uintptr_t offset, int length, int* result, bool directAddress, EndianType endianness)
 {
     LPVOID address = ReadMemoryAddress(offset, 0, endianness);
     uintptr_t addressConv = (uintptr_t)address;
-    std::string str = ReadMemoryString(addressConv, length, directAddress);
+    std::string str = ReadMemoryString(addressConv, length, result, directAddress);
 
     return str;
 }
@@ -139,7 +139,7 @@ LPVOID PEProcess::ReadMemoryAddress(LPVOID address, EndianType endianness)
     return ReadMemoryAddress((uintptr_t)address, 1, endianness);
 }
 
-LPVOID PEProcess::ReadMemoryAddress(uintptr_t offset, int directAddress, EndianType endianness)
+LPVOID PEProcess::ReadMemoryAddress(uintptr_t offset, bool directAddress, EndianType endianness)
 {
     LPVOID address = CheckAddress(offset, directAddress);
 
@@ -168,7 +168,7 @@ LPVOID PEProcess::ReadMemoryAddress(uintptr_t offset, int directAddress, EndianT
     throw new std::exception("Invalid architecture type.");
 }
 
-std::string PEProcess::ReadMemoryString(LPVOID address, int length, int offset)
+std::string PEProcess::ReadMemoryString(LPVOID address, int length, int* result, int offset)
 {
     if (address == 0)
     {
@@ -177,10 +177,10 @@ std::string PEProcess::ReadMemoryString(LPVOID address, int length, int offset)
 
     uintptr_t addr = (uintptr_t)address + offset;
 
-    return ReadMemoryString(addr, length, 1);
+    return ReadMemoryString(addr, length, result, 1);
 }
 
-std::string PEProcess::ReadMemoryString(uintptr_t offset, int length, int directAddress)
+std::string PEProcess::ReadMemoryString(uintptr_t offset, int length, int* result, bool directAddress)
 {
     LPVOID address = CheckAddress(offset, directAddress);
 
@@ -191,10 +191,10 @@ std::string PEProcess::ReadMemoryString(uintptr_t offset, int length, int direct
         char buffer[256]{};
 
         SIZE_T read = 0;
-        bool result = ReadProcessMemory(processHandle, address, &buffer, sizeof(buffer), &read);
+        int curResult = ReadProcessMemory(processHandle, address, &buffer, sizeof(buffer), &read);
         totalRead += read;
 
-        if (result)
+        if (curResult)
         {
             for (auto c : buffer)
             {
@@ -210,9 +210,19 @@ std::string PEProcess::ReadMemoryString(uintptr_t offset, int length, int direct
         }
         else
         {
-            throw new std::exception("Error reading memory.");
+            if (result)
+            {
+                *result = 0;
+            }
+
+            return "";
         }
     } while (totalRead < length);
+
+    if (result)
+    {
+        *result = 1;
+    }
 
     return str;
 }
@@ -225,9 +235,9 @@ DWORD PEProcess::GetProcess32(wchar_t* processName)
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
 
     HANDLE hProcess = nullptr;
-    if (Process32First(snapshot, &entry) == TRUE)
+    if (Process32First(snapshot, &entry) == true)
     {
-        while (Process32Next(snapshot, &entry) == TRUE)
+        while (Process32Next(snapshot, &entry) == true)
         {
             if (wcscmp(entry.szExeFile, processName) == 0)
             {
