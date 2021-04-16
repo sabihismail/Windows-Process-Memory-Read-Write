@@ -53,7 +53,7 @@ void PEProcess::SetModule(wchar_t* moduleName)
     {
         if (hModules32.find(name) == hModules32.end())
         {
-            throw new std::exception("Module not found.");
+            throw std::exception("Module not found.");
         }
 
         currentModuleName = &name;
@@ -70,12 +70,12 @@ void PEProcess::CheckModule(std::string section)
 {
     if (currentHModule == nullptr || currentModuleName == nullptr || currentModuleName->empty())
     {
-        throw new std::exception("No module set.");
+        throw std::exception("No module set.");
     }
 
     if (currentHModule->sections.find(section) == currentHModule->sections.end())
     {
-        throw new std::exception("Section not found.");
+        throw std::exception("Section not found.");
     }
 }
 
@@ -94,7 +94,7 @@ LPVOID PEProcess::CheckAddress(uintptr_t offset, bool directAddress)
     // basic insecure check, probably need to fix
     if (address < moduleBaseAddress || address >= maxModuleAddress)
     {
-        throw new std::exception("Address is out of current module bounds.");
+        throw std::exception("Address is out of current module bounds.");
     }
 
     return (LPVOID)address;
@@ -165,7 +165,7 @@ LPVOID PEProcess::ReadMemoryAddress(uintptr_t offset, bool directAddress, Endian
         
     }
 
-    throw new std::exception("Invalid architecture type.");
+    throw std::exception("Invalid architecture type.");
 }
 
 std::string PEProcess::ReadMemoryString(LPVOID address, int length, int* result, int offset)
@@ -235,9 +235,9 @@ DWORD PEProcess::GetProcess32(wchar_t* processName)
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
 
     HANDLE hProcess = nullptr;
-    if (Process32First(snapshot, &entry) == true)
+    if (Process32First(snapshot, &entry) == TRUE)
     {
-        while (Process32Next(snapshot, &entry) == true)
+        while (Process32Next(snapshot, &entry) == TRUE)
         {
             if (wcscmp(entry.szExeFile, processName) == 0)
             {

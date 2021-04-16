@@ -78,7 +78,7 @@ T PEProcess::ReadMemoryStruct(LPVOID address, int offset, int* success)
 	uintptr_t ptr = (uintptr_t)address + offset;
 	LPCVOID addr = (LPCVOID)ptr;
 
-	int result = ReadProcessMemory(processHandle, addr, &obj, sizeof(T), NULL);
+	int result = ReadProcessMemory(processHandle, addr, &obj, sizeof(T), nullptr);
 
 	if (success)
 	{
