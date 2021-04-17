@@ -103,12 +103,12 @@ LPVOID PEProcess::CheckAddress(uintptr_t offset, bool directAddress)
 LPVOID PEProcess::ReadMemoryAddressChain(uintptr_t firstAddress, int* offsets, uint16_t offsetCount, EndianType endianFlip)
 {
     uintptr_t currentAddress = firstAddress;
-    for (uint16_t i = 0; i <= offsetCount / 4; i++)
+    for (uint16_t i = 0; i <= offsetCount; i++)
     {
         LPVOID address = ReadMemoryAddress(currentAddress, currentAddress == firstAddress ? 0 : 1, endianFlip);
         currentAddress = (uintptr_t)address;
 
-        if (i != offsetCount / 4)
+        if (i != offsetCount)
         {
             currentAddress += *offsets++;
         }
