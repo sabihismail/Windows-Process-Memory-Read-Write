@@ -295,7 +295,7 @@ void PEProcess::GetHModules32()
 	}
 }
 
-void PEProcess::ProcessHModule32(MODULEENTRY32 hModule)
+[[maybe_unused]] void PEProcess::ProcessHModule32(MODULEENTRY32 hModule)
 {
 	auto addr = (unsigned long long)hModule.modBaseAddr;
 
