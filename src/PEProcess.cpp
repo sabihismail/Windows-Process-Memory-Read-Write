@@ -184,7 +184,7 @@ std::string PEProcess::ReadMemoryString(uintptr_t offset, int length, int* resul
 {
     LPVOID address = CheckAddress(offset, directAddress);
 
-    SIZE_T totalRead = 0;
+    int totalRead = 0;
     std::string str;
     do
     {
