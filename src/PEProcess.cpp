@@ -168,7 +168,7 @@ LPVOID PEProcess::ReadMemoryAddress(uintptr_t offset, bool directAddress, Endian
     throw std::exception("Invalid architecture type.");
 }
 
-std::string PEProcess::ReadMemoryString(LPVOID address, int length, int* result, int offset)
+std::string PEProcess::ReadMemoryString(LPVOID address, SIZE_T length, int* result, int offset)
 {
     if (address == 0)
     {
@@ -180,11 +180,11 @@ std::string PEProcess::ReadMemoryString(LPVOID address, int length, int* result,
     return ReadMemoryString(addr, length, result, 1);
 }
 
-std::string PEProcess::ReadMemoryString(uintptr_t offset, int length, int* result, bool directAddress)
+std::string PEProcess::ReadMemoryString(uintptr_t offset, SIZE_T length, int* result, bool directAddress)
 {
     LPVOID address = CheckAddress(offset, directAddress);
 
-    int totalRead = 0;
+    SIZE_T totalRead = 0;
     std::string str;
     do
     {

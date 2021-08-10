@@ -13,9 +13,9 @@
 
 struct HModuleExt32
 {
-	IMAGE_DOS_HEADER dosHeaders;
-	IMAGE_NT_HEADERS ntHeaders;
-	MODULEENTRY32W hModule;
+	IMAGE_DOS_HEADER dosHeaders{};
+	IMAGE_NT_HEADERS ntHeaders{};
+	MODULEENTRY32W hModule{};
 	std::wstring name;
 	std::map<std::string, IMAGE_SECTION_HEADER> sections;
 };
@@ -44,8 +44,8 @@ public:
 	std::string ReadMemoryStringFromAddress(uintptr_t offset, int length = 32, int* result = nullptr, bool directAddress = false, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
 	LPVOID ReadMemoryAddress(LPVOID address, EndianType endian = EndianType::LITTLE_ENDIAN);
 	LPVOID ReadMemoryAddress(uintptr_t offset, bool directAddress = false, EndianType endian = EndianType::LITTLE_ENDIAN);
-	std::string ReadMemoryString(LPVOID address, int length = 32, int* result = nullptr, int offset = 0);
-	std::string ReadMemoryString(uintptr_t offset, int length = 32, int* result = nullptr, bool directAddress = false);
+	std::string ReadMemoryString(LPVOID address, SIZE_T length = 32, int* result = nullptr, int offset = 0);
+	std::string ReadMemoryString(uintptr_t offset, SIZE_T length = 32, int* result = nullptr, bool directAddress = false);
 	int ReadMemoryStruct(LPVOID address, void* obj, SIZE_T size, int offset = 0);
 	template<class T>
 	T ReadMemoryStruct(LPVOID address, int offset = 0, int* success = nullptr);
