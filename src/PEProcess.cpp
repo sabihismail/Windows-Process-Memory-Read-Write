@@ -10,7 +10,7 @@ PEProcess::PEProcess(DWORD processID)
     GetHModules();
 }
 
-PEProcess PEProcess::WaitForProcessAvailability(wchar_t* processName, int* toCheck)
+PEProcess PEProcess::WaitForProcessAvailability(const wchar_t* processName, int* toCheck)
 {
     ProcessType processType = IdentifyProcess();
 
@@ -21,6 +21,10 @@ PEProcess PEProcess::WaitForProcessAvailability(wchar_t* processName, int* toChe
         if (processType == ProcessType::PROCESS_32)
         {
             processID = GetProcess32(processName);
+        }
+        else
+        {
+            processID = GetProcess64(processName);
         }
 
         if (processID != NULL)
@@ -44,7 +48,7 @@ int PEProcess::StillAlive()
     return ret == WAIT_TIMEOUT;
 }
 
-void PEProcess::SetModule(wchar_t* moduleName)
+void PEProcess::SetModule(const wchar_t* moduleName)
 {
     std::wstring name(moduleName);
     std::transform(name.begin(), name.end(), name.begin(), ::tolower);
@@ -227,7 +231,29 @@ std::string PEProcess::ReadMemoryString(uintptr_t offset, SIZE_T length, int* re
     return str;
 }
 
-DWORD PEProcess::GetProcess32(wchar_t* processName)
+DWORD PEProcess::GetProcess32(const wchar_t* processName)
+{
+    PROCESSENTRY32 entry{};
+    entry.dwSize = sizeof(PROCESSENTRY32);
+
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+
+    HANDLE hProcess = nullptr;
+    if (Process32First(snapshot, &entry) == TRUE)
+    {
+        while (Process32Next(snapshot, &entry) == TRUE)
+        {
+            if (wcscmp(entry.szExeFile, processName) == 0)
+            {
+                return entry.th32ProcessID;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+DWORD PEProcess::GetProcess64(const wchar_t* processName)
 {
     PROCESSENTRY32 entry{};
     entry.dwSize = sizeof(PROCESSENTRY32);
@@ -255,8 +281,7 @@ ProcessType PEProcess::IdentifyProcess()
     return ProcessType::PROCESS_32;
 #endif
 
-#if _WIN64 // Not implemented so just exit
-    exit(-1);
+#if _WIN64
     return ProcessType::PROCESS_64;
 #endif
 }

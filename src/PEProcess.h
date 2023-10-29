@@ -36,9 +36,9 @@ class PEProcess
 {
 public:
 	PEProcess(DWORD processID);
-	static PEProcess WaitForProcessAvailability(wchar_t* processName, int* toCheck);
+	static PEProcess WaitForProcessAvailability(const wchar_t* processName, int* toCheck);
 	int StillAlive();
-	void SetModule(wchar_t* moduleName);
+	void SetModule(const wchar_t* moduleName);
 	void SetEndianness(EndianType endian);
 	LPVOID ReadMemoryAddressChain(uintptr_t firstAddress, int* offsets, uint16_t offsetCount, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
 	std::string ReadMemoryStringFromAddress(uintptr_t offset, int length = 32, int* result = nullptr, bool directAddress = false, EndianType endianFlip = EndianType::LITTLE_ENDIAN);
@@ -62,7 +62,8 @@ private:
 	HModuleExt32* currentHModule = nullptr;
 
 	static ProcessType IdentifyProcess();
-	static DWORD GetProcess32(wchar_t* processName);
+	static DWORD GetProcess32(const wchar_t* processName);
+	static DWORD GetProcess64(const wchar_t* processName);
 	void CheckModule(std::string section);
 	LPVOID CheckAddress(uintptr_t address, bool directAddress);
 	void GetHModules();
