@@ -18,14 +18,7 @@ PEProcess PEProcess::WaitForProcessAvailability(const wchar_t* processName, int*
 
     while (processID == NULL && *toCheck)
     {
-        if (processType == ProcessType::PROCESS_32)
-        {
-            processID = GetProcess32(processName);
-        }
-        else
-        {
-            processID = GetProcess64(processName);
-        }
+        processID = GetProcess(processName);
 
         if (processID != NULL)
         {
@@ -53,16 +46,13 @@ void PEProcess::SetModule(const wchar_t* moduleName)
     std::wstring name(moduleName);
     std::transform(name.begin(), name.end(), name.begin(), ::tolower);
 
-    if (processType == ProcessType::PROCESS_32)
+    if (hModules32.find(name) == hModules32.end())
     {
-        if (hModules32.find(name) == hModules32.end())
-        {
-            throw std::exception("Module not found.");
-        }
-
-        currentModuleName = &name;
-        currentHModule = &hModules32[name];
+        throw std::exception("Module not found.");
     }
+
+    currentModuleName = &name;
+    currentHModule = &hModules32[name];
 }
 
 void PEProcess::SetEndianness(EndianType endian)
@@ -85,6 +75,11 @@ void PEProcess::CheckModule(std::string section)
 
 LPVOID PEProcess::CheckAddress(uintptr_t offset, bool directAddress)
 {
+    if (currentHModule == nullptr)
+    {
+        throw std::exception("SetModule was not run/is invalid.");
+    }
+
     if (directAddress)
     {
         return (LPVOID)offset;
@@ -231,29 +226,7 @@ std::string PEProcess::ReadMemoryString(uintptr_t offset, SIZE_T length, int* re
     return str;
 }
 
-DWORD PEProcess::GetProcess32(const wchar_t* processName)
-{
-    PROCESSENTRY32 entry{};
-    entry.dwSize = sizeof(PROCESSENTRY32);
-
-    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-
-    HANDLE hProcess = nullptr;
-    if (Process32First(snapshot, &entry) == TRUE)
-    {
-        while (Process32Next(snapshot, &entry) == TRUE)
-        {
-            if (wcscmp(entry.szExeFile, processName) == 0)
-            {
-                return entry.th32ProcessID;
-            }
-        }
-    }
-
-    return NULL;
-}
-
-DWORD PEProcess::GetProcess64(const wchar_t* processName)
+DWORD PEProcess::GetProcess(const wchar_t* processName)
 {
     PROCESSENTRY32 entry{};
     entry.dwSize = sizeof(PROCESSENTRY32);
@@ -277,28 +250,16 @@ DWORD PEProcess::GetProcess64(const wchar_t* processName)
 
 ProcessType PEProcess::IdentifyProcess()
 {
-#if _WIN32
-    return ProcessType::PROCESS_32;
-#endif
-
 #if _WIN64
     return ProcessType::PROCESS_64;
+#endif
+
+#if _WIN32
+    return ProcessType::PROCESS_32;
 #endif
 }
 
 void PEProcess::GetHModules()
-{
-    switch (processType)
-    {
-    case ProcessType::PROCESS_32:
-        GetHModules32();
-        break;
-    case ProcessType::PROCESS_64:
-        break;
-    }
-}
-
-void PEProcess::GetHModules32()
 {
     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, processID);
     if (hSnapshot != INVALID_HANDLE_VALUE)
@@ -309,16 +270,16 @@ void PEProcess::GetHModules32()
         {
             do
             {
-                ProcessHModule32(moduleEntry32);
+                ProcessHModule(moduleEntry32);
             } while (Module32Next(hSnapshot, &moduleEntry32));
         }
         CloseHandle(hSnapshot);
     }
 }
 
-void PEProcess::ProcessHModule32(MODULEENTRY32W hModule)
+void PEProcess::ProcessHModule(MODULEENTRY32W hModule)
 {
-    unsigned long addr = (unsigned long)hModule.modBaseAddr;
+    unsigned long long addr = (unsigned long long)hModule.modBaseAddr;
 
     IMAGE_DOS_HEADER dosHeaders{};
     ReadProcessMemory(processHandle, (LPCVOID)addr, &dosHeaders, sizeof(IMAGE_DOS_HEADER), 0);

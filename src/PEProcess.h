@@ -62,13 +62,11 @@ private:
 	HModuleExt32* currentHModule = nullptr;
 
 	static ProcessType IdentifyProcess();
-	static DWORD GetProcess32(const wchar_t* processName);
-	static DWORD GetProcess64(const wchar_t* processName);
+	static DWORD GetProcess(const wchar_t* processName);
 	void CheckModule(std::string section);
 	LPVOID CheckAddress(uintptr_t address, bool directAddress);
 	void GetHModules();
-	void GetHModules32();
-	void ProcessHModule32(MODULEENTRY32W hModule);
+	void ProcessHModule(MODULEENTRY32W hModule);
 };
 
 template<class T>
